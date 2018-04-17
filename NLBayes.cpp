@@ -35,22 +35,41 @@ using Eigen::LDLT;
 using Eigen::Success;
 
 namespace step1 {
-constexpr int patch_size = 3;
-constexpr int ps2 = patch_size * patch_size;
-constexpr int search_window = 8 * patch_size - 1;
-constexpr int border = (search_window - patch_size) / 2;
-constexpr int offset = search_window / 2;
-constexpr int nsim = 50;
-constexpr float flat_threshold = 1.f;
+int patch_size = 3;
+int search_window = 8 * patch_size - 1;
+int nsim = 50;
+float flat_threshold = 1.f;
+}
+
+void set_patch_size1(int p) {step1::patch_size = p;}
+void set_search_window1(int p) {step1::search_window = p;}
+void set_nsim1(int p) {step1::nsim = p;}
+void set_flat_threshold1(float p) {step1::flat_threshold = p;}
+
+void print_params1(void) {
+  printf("step1::patch_size %d\n", step1::patch_size);
+  printf("     ::search_window %d\n", step1::search_window);
+  printf("     ::nsim %d\n", step1::nsim);
+  printf("     ::flat_threshold %g\n", step1::flat_threshold);
 }
 
 namespace step2 {
-constexpr int patch_size = 5;
-constexpr int search_window = 8 * patch_size - 1;
-constexpr int border = (search_window - patch_size) / 2;
-constexpr int offset = search_window / 2;
-constexpr int nsim_min = 40;
-constexpr float tau0 = 16.f;
+int patch_size = 5;
+int search_window = 8 * patch_size - 1;
+int nsim_min = 40;
+float tau = 16.f;
+}
+
+void set_patch_size2(int p) {step2::patch_size = p;}
+void set_search_window2(int p) {step2::search_window = p;}
+void set_nsim_min2(int p) {step2::nsim_min = p;}
+void set_tau2(float p) {step2::tau = p;}
+
+void print_params2(void) {
+  printf("step2::patch_size %d\n", step2::patch_size);
+  printf("     ::search_window %d\n", step2::search_window);
+  printf("     ::nsim_min %d\n", step2::nsim_min);
+  printf("     ::tau %g\n", step2::tau);
 }
 
 class PatchDist {
@@ -114,6 +133,8 @@ float ComputeDistance(const Image &src, int r1, int c1, int r2, int c2) {
 
 pair<Image, Image> compute(const Image &noisy, float sigma) {
   float sigma2 = sigma * sigma;
+  int ps2 = patch_size * patch_size;
+  int border = (search_window - patch_size) / 2;
   Image result(noisy.rows(), noisy.columns(), noisy.channels());
   Image weights(noisy.rows(), noisy.columns());
   BoolMask processed(noisy.rows(), noisy.columns());
@@ -163,7 +184,7 @@ pair<Image, Image> compute(const Image &noisy, float sigma) {
 
         for (int chan = 0; chan < noisy.channels(); ++chan) {
           // put all the patches of the group as rows of a matrix
-          Matrix<float, ps2, nsim> block;
+          MatrixXf block(ps2, nsim);
           for (int i = 0; i < nsim; ++i) {
             int pos = 0;
             for (int r = 0; r < patch_size; ++r) {
@@ -179,13 +200,11 @@ pair<Image, Image> compute(const Image &noisy, float sigma) {
             block.setConstant(block.array().mean());
           } else {
             // Compute the centered block
-            Matrix<float, ps2, nsim>
-                cblock = block.colwise() - block.rowwise().mean();
+            MatrixXf cblock = block.colwise() - block.rowwise().mean();
             // Compute the covariance matrix of the block of similar patches
-            Matrix<float, ps2, ps2>
-                covariance = cblock * cblock.transpose() / (nsim - 1);
+            MatrixXf covariance = cblock * cblock.transpose() / (nsim - 1);
             // Bayes' Filtering -> block -= sigma2 C^-1 (block - avg)
-            LDLT<Matrix<float, ps2, ps2>> solver(covariance);
+            LDLT<MatrixXf> solver(covariance);
             if (solver.info() == Success)
               block -= sigma2 * solver.solve(cblock);
           }
@@ -238,6 +257,7 @@ float ComputeDistance(const Image &src, int r1, int c1, int r2, int c2) {
 pair<Image, Image> compute(const Image &noisy, const Image &guide, float sigma) {
   float sigma2 = sigma * sigma;
   int ps2 = patch_size * patch_size * noisy.channels();
+  int border = (search_window - patch_size) / 2;
   Image result(noisy.rows(), noisy.columns(), noisy.channels());
   Image weights(noisy.rows(), noisy.columns());
   BoolMask processed(noisy.rows(), noisy.columns());
@@ -257,7 +277,7 @@ pair<Image, Image> compute(const Image &noisy, const Image &guide, float sigma) 
           for (int c = col; c <= col + search_window - patch_size; ++c) {
             float d = ComputeDistance(guide, r, c, row + border, col + border);
             distances.push_back({d, r, c});
-            if (d < tau0 * ps2)
+            if (d < tau * ps2)
               ++nsim;
           }
         }
@@ -335,10 +355,11 @@ Image NLBstep1(const imgutils::Image &noisy, float sigma, int nthreads) {
   nthreads = 1;
 #endif  // _OPENMP
 
+  int offset = step1::search_window / 2;
   pair<int, int> tiling = ComputeTiling(noisy.rows(), noisy.columns(),
                                         nthreads);
   vector<Image> noisy_tiles = SplitTiles(ColorTransform(noisy.copy()),
-                                         step1::offset, step1::offset, tiling);
+                                         offset, offset, tiling);
   vector<pair<Image, Image>> result_tiles(nthreads);
 
 #pragma omp parallel for num_threads(nthreads)
@@ -347,8 +368,7 @@ Image NLBstep1(const imgutils::Image &noisy, float sigma, int nthreads) {
   }
 
   return ColorTransformInverse(MergeTiles(result_tiles, noisy.shape(),
-                                          step1::offset, step1::offset,
-                                          tiling));
+                                          offset, offset, tiling));
 }
 
 Image NLBstep2(const imgutils::Image &noisy, const imgutils::Image &guide,
@@ -359,12 +379,11 @@ Image NLBstep2(const imgutils::Image &noisy, const imgutils::Image &guide,
   nthreads = 1;
 #endif  // _OPENMP
 
+  int offset = step2::search_window / 2;
   pair<int, int> tiling = ComputeTiling(noisy.rows(), noisy.columns(),
                                         nthreads);
-  vector<Image> noisy_tiles = SplitTiles(noisy, step2::offset, step2::offset,
-                                         tiling);
-  vector<Image> guide_tiles = SplitTiles(guide, step2::offset, step2::offset,
-                                         tiling);
+  vector<Image> noisy_tiles = SplitTiles(noisy, offset, offset, tiling);
+  vector<Image> guide_tiles = SplitTiles(guide, offset, offset, tiling);
   vector<pair<Image, Image>> result_tiles(nthreads);
 
 #pragma omp parallel for num_threads(nthreads)
@@ -372,6 +391,5 @@ Image NLBstep2(const imgutils::Image &noisy, const imgutils::Image &guide,
     result_tiles[i] = step2::compute(noisy_tiles[i], guide_tiles[i], sigma);
   }
 
-  return MergeTiles(result_tiles, noisy.shape(), step2::offset, step2::offset,
-                    tiling);
+  return MergeTiles(result_tiles, noisy.shape(), offset, offset, tiling);
 }
