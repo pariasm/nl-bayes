@@ -24,3 +24,5 @@ Image MergeTiles(const std::vector<std::pair<Image, Image>> &src,
 }  // namespace imgutils
 
 #endif //IMGUTILS_UTILS_HPP
+
+// vim: tabstop=2 softtabstop=2 shiftwidth=2 expandtab

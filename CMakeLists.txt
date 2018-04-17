@@ -69,3 +69,5 @@ set(SOURCE_FILES
 set_property(SOURCE iio.c PROPERTY COMPILE_FLAGS "-Wno-unused-variable -Wno-unused-parameter -Wno-pointer-sign -Wno-parentheses -Wno-deprecated-declarations -Wno-unused-function")
 
 add_executable(nl-bayes ${SOURCE_FILES})
+
+# vim: tabstop=2 softtabstop=2 shiftwidth=2 expandtab

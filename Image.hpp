@@ -108,3 +108,5 @@ inline T& BasicImage<T>::val(int pos) {
 } /* namespace imgutils */
 
 #endif  // IMAGE_HPP_
+
+// vim: tabstop=2 softtabstop=2 shiftwidth=2 expandtab

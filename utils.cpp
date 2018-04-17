@@ -139,3 +139,5 @@ Image MergeTiles(const vector<pair<Image, Image>> &src, pair<int, int> shape,
 }
 
 }  // namespace imgutils
+
+// vim: tabstop=2 softtabstop=2 shiftwidth=2 expandtab

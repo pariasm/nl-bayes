@@ -17,3 +17,5 @@ void set_search_window2(int);
 void set_nsim_min2(int);
 void set_tau2(float);
 void print_params2(void);
+
+// vim: tabstop=2 softtabstop=2 shiftwidth=2 expandtab

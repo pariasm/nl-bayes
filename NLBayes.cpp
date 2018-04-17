@@ -393,3 +393,5 @@ Image NLBstep2(const imgutils::Image &noisy, const imgutils::Image &guide,
 
   return MergeTiles(result_tiles, noisy.shape(), offset, offset, tiling);
 }
+
+// vim: tabstop=2 softtabstop=2 shiftwidth=2 expandtab
