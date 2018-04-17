@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(nl-bayes)
+project(nlbayes)
 
 # The build type "Release" adds some optimizations
 if (NOT CMAKE_BUILD_TYPE)
@@ -68,6 +68,7 @@ set(SOURCE_FILES
 
 set_property(SOURCE iio.c PROPERTY COMPILE_FLAGS "-Wno-unused-variable -Wno-unused-parameter -Wno-pointer-sign -Wno-parentheses -Wno-deprecated-declarations -Wno-unused-function")
 
-add_executable(nl-bayes ${SOURCE_FILES})
+add_executable(nlbayes ${SOURCE_FILES})
+add_subdirectory(scripts)
 
 # vim: tabstop=2 softtabstop=2 shiftwidth=2 expandtab
